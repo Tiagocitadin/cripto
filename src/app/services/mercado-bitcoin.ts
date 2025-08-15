@@ -36,22 +36,31 @@ export class MercadoBitcoinService {
    * @param useCache Se deve usar cache (padrão: true)
    */
   getTicker(moeda: string, useCache: boolean = true): Observable<TickerResponse> {
-    if (!moeda) {
-      throw new Error('O parâmetro moeda é obrigatório');
-    }
-
-    const url = `${this.API_URL}/${moeda.toUpperCase()}/ticker`;
-
-    if (!useCache || !this.cache[moeda]) {
-      this.cache[moeda] = this.http.get<TickerResponse>(url).pipe(
-        retry(this.RETRY_COUNT),
-        catchError(this.handleError),
-        shareReplay(this.CACHE_SIZE)
-      );
-    }
-
-    return this.cache[moeda];
+  if (!moeda) {
+    throw new Error('O parâmetro moeda é obrigatório');
   }
+
+  // Padroniza a chave sempre em maiúsculo
+  const moedaKey = moeda.toUpperCase();
+  const url = `${this.API_URL}/${moedaKey}/ticker`;
+
+  // Se não quiser usar cache, remove a versão anterior
+  if (!useCache) {
+    delete this.cache[moedaKey];
+  }
+
+  // Cria e armazena no cache apenas se ainda não existir
+  if (!this.cache[moedaKey]) {
+    this.cache[moedaKey] = this.http.get<TickerResponse>(url).pipe(
+      retry(this.RETRY_COUNT),
+      catchError(this.handleError),
+      shareReplay(this.CACHE_SIZE)
+    );
+  }
+
+  return this.cache[moedaKey];
+}
+
 
   /**
    * Obtém os dados do ticker em tempo real com intervalo definido

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MercadoBitcoinService } from '../../services/mercado-bitcoin';
 import { of, Subscription, timer } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 
 interface CryptoData {
   buy: string;
@@ -24,14 +24,15 @@ interface CryptoData {
   styleUrls: ['./cripto.component.css']
 })
 export class CriptoComponent implements OnInit, OnDestroy {
-  // Lista completa de moedas disponíveis
-  private todasMoedas: string[] = ['BTC', 'ETH', 'LTC', 'XRP', 'SHIB', 'DOGE', 'MINA', 'RACA'];
-  
-  // Dados do componente
-  moedasFiltradas: string[] = [];
+  // Lista das moedas escolhidas pelo usuário
   moedasSelecionadas: string[] = [];
+  
+  // Dados por moeda
   dados: { [key: string]: CryptoData } = {};
-  searchTerm: string = '';
+
+  // Controle da moeda digitada
+  novaMoeda: string = '';
+
   ultimaAtualizacao?: Date;
   isLoading: boolean = false;
   errorMessage?: string;
@@ -43,21 +44,16 @@ export class CriptoComponent implements OnInit, OnDestroy {
   constructor(private mbService: MercadoBitcoinService) {}
 
   ngOnInit(): void {
-    this.moedasFiltradas = [...this.todasMoedas];
     this.setupAutoRefresh();
   }
 
   ngOnDestroy(): void {
-    // Limpa todas as subscriptions
     Object.values(this.dataSubscriptions).forEach(sub => sub.unsubscribe());
     this.globalSubscriptions.unsubscribe();
   }
 
   private setupAutoRefresh(): void {
-    // Atualiza os dados a cada 30 segundos
-    const refreshSub = timer(0, 30000)
-      .subscribe(() => this.atualizarDados());
-    
+    const refreshSub = timer(0, 30000).subscribe(() => this.atualizarDados());
     this.globalSubscriptions.add(refreshSub);
   }
 
@@ -69,7 +65,6 @@ export class CriptoComponent implements OnInit, OnDestroy {
   }
 
   private fetchCurrencyData(moeda: string): void {
-    // Cancela a subscription anterior se existir
     if (this.dataSubscriptions[moeda]) {
       this.dataSubscriptions[moeda].unsubscribe();
     }
@@ -79,7 +74,6 @@ export class CriptoComponent implements OnInit, OnDestroy {
 
     this.dataSubscriptions[moeda] = this.mbService.getTickerEmTempoReal(moeda)
       .pipe(
-        // Adiciona tratamento de erro
         catchError(error => {
           console.error(`Erro ao buscar dados de ${moeda}:`, error);
           this.errorMessage = `Falha ao carregar dados de ${moeda}`;
@@ -99,27 +93,20 @@ export class CriptoComponent implements OnInit, OnDestroy {
       });
   }
 
-  onToggleMoeda(moeda: string, checked: boolean): void {
-    if (checked) {
+  adicionarMoeda(): void {
+    const moeda = this.novaMoeda.trim().toUpperCase();
+    if (moeda && !this.moedasSelecionadas.includes(moeda)) {
       this.moedasSelecionadas.push(moeda);
       this.fetchCurrencyData(moeda);
-    } else {
-      this.moedasSelecionadas = this.moedasSelecionadas.filter(m => m !== moeda);
-      this.dataSubscriptions[moeda]?.unsubscribe();
-      delete this.dataSubscriptions[moeda];
-      delete this.dados[moeda];
     }
+    this.novaMoeda = '';
   }
 
-  filtrarMoedas(): void {
-    if (!this.searchTerm) {
-      this.moedasFiltradas = [...this.todasMoedas];
-      return;
-    }
-    
-    this.moedasFiltradas = this.todasMoedas.filter(moeda =>
-      moeda.toLowerCase().includes(this.searchTerm.toLowerCase())
-    );
+  removerMoeda(moeda: string): void {
+    this.moedasSelecionadas = this.moedasSelecionadas.filter(m => m !== moeda);
+    this.dataSubscriptions[moeda]?.unsubscribe();
+    delete this.dataSubscriptions[moeda];
+    delete this.dados[moeda];
   }
 
   calcularVariacao(moeda: string): number {

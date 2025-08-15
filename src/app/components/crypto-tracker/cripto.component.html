@@ -1,59 +1,52 @@
-<div class="crypto-container">
-  <h2 class="title">Acompanhamento de Criptomoedas</h2>
+<h2>Monitor de Criptomoedas</h2>
 
-  <div class="search-container">
-    <input type="text" [(ngModel)]="searchTerm" 
-           (input)="filtrarMoedas()"
-           placeholder="Pesquisar moedas...">
-  </div>
 
-  <div class="currency-grid">
-    <div *ngFor="let moeda of moedasFiltradas" class="currency-card">
-      <label class="currency-label">
-        <input type="checkbox"
-               [checked]="moedasSelecionadas.includes(moeda)"
-               (change)="onToggleMoeda(moeda, $event.target.checked)">
-        {{ moeda }}
-      </label>
-    </div>
-  </div>
+<!-- Campo para adicionar moeda -->
+<div>
+  <input [(ngModel)]="novaMoeda" placeholder="Digite a moeda (ex: BTC)" />
+  <button (click)="adicionarMoeda()">Adicionar</button>
+</div>
 
-  <div *ngIf="isLoading" class="loading-indicator">
-    Carregando dados...
-  </div>
+<hr>
 
-  <div *ngIf="errorMessage" class="error-message">
-    {{ errorMessage }}
-  </div>
+<!-- Lista de moedas selecionadas -->
+<div *ngIf="moedasSelecionadas.length > 0">
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Moeda</th>
+        <th>Compra</th>
+        <th>Venda</th>
+        <th>Último</th>
+        <th>Alta</th>
+        <th>Baixa</th>
+        <th>Variação (%)</th>
+        <th>Atualizado em</th>
+        <th>Ação</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let moeda of moedasSelecionadas">
+        <td>{{ moeda }}</td>
+        <td>{{ dados[moeda]?.buy }}</td>
+        <td>{{ dados[moeda]?.sell }}</td>
+        <td>{{ dados[moeda]?.last }}</td>
+        <td>{{ dados[moeda]?.high }}</td>
+        <td>{{ dados[moeda]?.low }}</td>
+        <td>{{ calcularVariacao(moeda) | number:'1.2-2' }}</td>
+        <td>{{ dados[moeda]?.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+        <td><button (click)="removerMoeda(moeda)">Remover</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-  <div class="price-cards" *ngIf="moedasSelecionadas.length > 0">
-    <div *ngFor="let moeda of moedasSelecionadas" class="price-card">
-      <div class="card-header">
-        <h3>{{ moeda }}</h3>
-        <span class="price-change" [class.positive]="calcularVariacao(moeda) >= 0"
-                                [class.negative]="calcularVariacao(moeda) < 0">
-          {{ calcularVariacao(moeda) | number:'1.2-2' }}%
-        </span>
-      </div>
-      
-      <div class="card-body">
-        <div class="price-row">
-          <span>Compra:</span>
-          <span>{{ dados[moeda]?.buy | number:'1.6-8' }}</span>
-        </div>
-        <div class="price-row">
-          <span>Venda:</span>
-          <span>{{ dados[moeda]?.sell | number:'1.6-8' }}</span>
-        </div>
-      </div>
-      
-      <div class="card-footer">
-        <small>Atualizado: {{ dados[moeda]?.timestamp | date:'HH:mm:ss' }}</small>
-      </div>
-    </div>
-  </div>
+<!-- Caso não tenha moedas -->
+<div *ngIf="moedasSelecionadas.length === 0">
+  Nenhuma moeda selecionada.
+</div>
 
-  <div *ngIf="moedasSelecionadas.length === 0" class="empty-state">
-    Nenhuma moeda selecionada. Selecione ao menos uma para ver as cotações.
-  </div>
+<!-- Mensagem de erro -->
+<div *ngIf="errorMessage" style="color: red;">
+  {{ errorMessage }}
 </div>
